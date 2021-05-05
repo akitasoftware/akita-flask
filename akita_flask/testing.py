@@ -44,16 +44,19 @@ def wsgi_to_har_entry(start: datetime, request: Request, response: Response) -> 
         server_protocol = request.environ['SERVER_PROTOCOL']
 
     url = parse.urlsplit(request.url)
-    query_string = [har.Record(name=k, value=v) for k, v in parse.parse_qs(url.query).items()]
 
+    query_string = [har.Record(name=k, value=v) for k, vs in parse.parse_qs(url.query).items() for v in vs]
     headers = [har.Record(name=k, value=v) for k, v in request.headers.items()]
     encoded_headers = '\n'.join([f'{k}: {v}' for k, v in request.headers.items()]).encode("utf-8")
     body = request.data.decode("utf-8")
     cookies = parse_cookie(request.environ)
 
+    # Clear the query from the URL in the HAR entry.
+    har_entry_url = parse.urlunparse((url.scheme, url.netloc, url.path, '', '', url.fragment))
+
     har_request = har.Request(
         method=request.method,
-        url=url.path,
+        url=request.url,
         httpVersion=server_protocol,
         cookies=[har.Record(name=k, value=v) for k in cookies for v in cookies.getlist(k)],
         headers=headers,
