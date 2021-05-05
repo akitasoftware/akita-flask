@@ -98,8 +98,9 @@ def wsgi_to_har_entry(start: datetime, request: Request, response: Response) -> 
 
 
 class HarClient(FlaskClient):
-    def __init__(self, *args, har_file_path=f'akita_trace_{time.time()}.har', **kwargs):
-        self.har_writer = HarWriter(har_file_path, 'w')
+    def __init__(self, *args, har_file_path=None, **kwargs):
+        path = har_file_path if har_file_path is not None else f'akita_trace_{time.time()}.har'
+        self.har_writer = HarWriter(path, 'w')
         self.url_prefix = ""
         super().__init__(*args, **kwargs)
 
