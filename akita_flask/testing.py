@@ -13,18 +13,18 @@
 # limitations under the License.
 
 from datetime import datetime, timezone
-import time
+import uuid
 
 import akita_har.models as har
 import werkzeug.test
 
 from akita_har import HarWriter
 from flask.testing import FlaskClient
-from typing import Optional, List
+from typing import List
 from urllib import parse
 from flask.testing import EnvironBuilder
 from werkzeug.http import parse_cookie
-from werkzeug.wrappers import BaseResponse, Request, Response
+from werkzeug.wrappers import Request, Response
 
 
 def wsgi_to_har_entry(start: datetime, request: Request, response: Response) -> har.Entry:
@@ -51,7 +51,8 @@ def wsgi_to_har_entry(start: datetime, request: Request, response: Response) -> 
     body = request.data.decode("utf-8")
     cookies = parse_cookie(request.environ)
 
-    # Clear the query from the URL in the HAR entry.
+    # Clear the query from the URL in the HAR entry.  HAR entries record
+    # query parameters in a separate 'queryString' field.
     har_entry_url = parse.urlunparse((url.scheme, url.netloc, url.path, '', '', url.fragment))
 
     har_request = har.Request(
@@ -99,7 +100,11 @@ def wsgi_to_har_entry(start: datetime, request: Request, response: Response) -> 
 
 class HarClient(FlaskClient):
     def __init__(self, *args, har_file_path=None, **kwargs):
-        path = har_file_path if har_file_path is not None else f'akita_trace_{time.time()}.har'
+        # Append 5 digits of a UUID to avoid clobbering the default file if
+        # many HAR clients are created in rapid succession.
+        tail = str(uuid.uuid4().int)[-5:]
+        now = datetime.now().strftime('%y%m%d_%H%M')
+        path = har_file_path if har_file_path is not None else f'akita_trace_{now}_{tail}.har'
         self.har_writer = HarWriter(path, 'w')
         self.url_prefix = ""
         super().__init__(*args, **kwargs)
