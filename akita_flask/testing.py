@@ -53,11 +53,13 @@ def wsgi_to_har_entry(start: datetime, request: Request, response: Response) -> 
 
     # Clear the query from the URL in the HAR entry.  HAR entries record
     # query parameters in a separate 'queryString' field.
-    har_entry_url = parse.urlunparse((url.scheme, url.netloc, url.path, '', '', url.fragment))
+    # Also clear the URL fragment, which is excluded from HAR files:
+    # http://www.softwareishard.com/blog/har-12-spec/#request
+    har_entry_url = parse.urlunparse((url.scheme, url.netloc, url.path, '', '', ''))
 
     har_request = har.Request(
         method=request.method,
-        url=request.url,
+        url=har_entry_url,
         httpVersion=server_protocol,
         cookies=[har.Record(name=k, value=v) for k in cookies for v in cookies.getlist(k)],
         headers=headers,
