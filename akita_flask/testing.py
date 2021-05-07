@@ -90,13 +90,19 @@ def wsgi_to_har_entry(start: datetime, request: Request, response: Response) -> 
         bodySize=len(content),
     )
 
+    # datetime.timedelta doesn't have a total_milliseconds() method,
+    # so we compute it manually.
+    elapsed_time = datetime.now(timezone.utc) - start
+    elapsed_time_ms = ((elapsed_time.days * 86400 + elapsed_time.seconds) * 10**6 +
+                       elapsed_time.microseconds) / 10**3
+
     return har.Entry(
         startedDateTime=start,
-        time=(datetime.now(timezone.utc) - start).total_seconds(),
+        time=elapsed_time_ms,
         request=har_request,
         response=har_response,
         cache=har.Cache(),
-        timings=har.Timings(send=0, wait=0, receive=0),
+        timings=har.Timings(send=0, wait=elapsed_time_ms, receive=0),
     )
 
 
