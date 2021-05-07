@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import uuid
 
 import akita_har.models as har
@@ -92,17 +92,15 @@ def wsgi_to_har_entry(start: datetime, request: Request, response: Response) -> 
 
     # datetime.timedelta doesn't have a total_milliseconds() method,
     # so we compute it manually.
-    elapsed_time = datetime.now(timezone.utc) - start
-    elapsed_time_ms = ((elapsed_time.days * 86400 + elapsed_time.seconds) * 10**6 +
-                       elapsed_time.microseconds) / 10**3
+    elapsed_time = (datetime.now(timezone.utc) - start) / timedelta(milliseconds=1)
 
     return har.Entry(
         startedDateTime=start,
-        time=elapsed_time_ms,
+        time=elapsed_time,
         request=har_request,
         response=har_response,
         cache=har.Cache(),
-        timings=har.Timings(send=0, wait=elapsed_time_ms, receive=0),
+        timings=har.Timings(send=0, wait=elapsed_time, receive=0),
     )
 
 
